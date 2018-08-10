@@ -15,9 +15,20 @@ app.use(express.static(publicPath));
 io.on('connection', socket => {
   console.log('New user connected');
 
-  socket.emit('newEmail', {
-    to: 'aaa@sss.com',
-    text: 'lorem lorem',
+  socket.on('joinRoom', (roomId) => {
+    socket.join(roomId);
+
+    io.to(roomId).emit('fetchGameState', roomId);
+  });
+
+  socket.on('leaveRoom', (roomId) => {
+    socket.leave(roomId);
+
+    io.to(roomId).emit('fetchGameState', roomId);
+  });
+
+  socket.on('stateChange', (roomId) => {
+    io.to(roomId).emit('fetchGameState', roomId);
   });
 
   socket.on('disconnect', () => {
