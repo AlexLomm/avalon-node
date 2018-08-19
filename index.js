@@ -32,11 +32,15 @@ io.on('connection', socket => {
   });
 
   socket.on('proposeTeammate', (roomId, playerId) => {
-    initRoomIfMissing(roomId);
+    updateNodeState(roomId, () => {
+      toggleTeammate(roomId, playerId);
+    });
+  });
 
-    toggleTeammate(roomId, playerId);
-
-    io.to(roomId).emit('fetchNodeState', rooms[roomId]);
+  socket.on('proposeExecutionTarget', (roomId, playerId) => {
+    updateNodeState(roomId, () => {
+      rooms[roomId].executionTargetId = playerId;
+    });
   });
 
   socket.on('stateChange', (roomId) => {
@@ -53,6 +57,14 @@ io.on('connection', socket => {
 server.listen(port, () => {
   console.log(`Server is up on port ${port}`);
 });
+
+function updateNodeState(roomId, callback = () => {}) {
+  initRoomIfMissing(roomId);
+
+  callback();
+
+  io.to(roomId).emit('fetchNodeState', rooms[roomId]);
+}
 
 function toggleTeammate(roomId, playerId) {
   const index = rooms[roomId].team.findIndex(id => id === playerId);
@@ -72,6 +84,7 @@ function roomNeedsCreation(roomId) {
 
 function initRoom(roomId) {
   rooms[roomId] = {
-    team: []
+    team: [],
+    executionTargetId: null
   };
 }
