@@ -10,7 +10,11 @@ const app    = express();
 const server = http.createServer(app);
 const io     = socketIO(server);
 
+const RoomsManager = require('./rooms-manager');
+
 app.use(express.static(publicPath));
+
+const roomsManager = new RoomsManager(io);
 
 io.on('connection', socket => {
   console.log('New user connected');
@@ -18,7 +22,9 @@ io.on('connection', socket => {
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
 
-    io.to(roomId).emit('fetchGameState', roomId);
+    roomsManager.get(roomId)
+      ? io.to(roomId).emit('fetchBothStates', roomId, roomsManager.get(roomId).getState())
+      : io.to(roomId).emit('fetchGameState', roomId);
   });
 
   socket.on('leaveRoom', (roomId) => {
@@ -27,7 +33,27 @@ io.on('connection', socket => {
     io.to(roomId).emit('fetchGameState', roomId);
   });
 
+  socket.on('proposeTeammate', (roomId, playerId) => {
+    updateNodeState(roomId, () => {
+      roomsManager.get(roomId).toggleTeammate(playerId);
+    });
+  });
+
+  socket.on('clearProposedTeam', (roomId) => {
+    updateNodeState(roomId, () => {
+      roomsManager.get(roomId).clearTeam();
+    });
+  });
+
+  socket.on('proposeExecutionTarget', (roomId, playerId) => {
+    updateNodeState(roomId, () => {
+      roomsManager.get(roomId).setExecutionTarget(playerId);
+    });
+  });
+
   socket.on('stateChange', (roomId) => {
+    roomsManager.destroy(roomId);
+
     io.to(roomId).emit('fetchGameState', roomId);
   });
 
@@ -39,3 +65,11 @@ io.on('connection', socket => {
 server.listen(port, () => {
   console.log(`Server is up on port ${port}`);
 });
+
+function updateNodeState(roomId, callback = () => {}) {
+  roomsManager.createIfMissing(roomId);
+
+  callback();
+
+  io.to(roomId).emit('fetchNodeState', roomsManager.get(roomId).getState());
+}
