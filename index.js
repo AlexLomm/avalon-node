@@ -22,9 +22,12 @@ io.on('connection', socket => {
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
 
-    roomsManager.get(roomId)
-      ? io.to(roomId).emit('fetchBothStates', roomId, roomsManager.get(roomId).getState())
-      : io.to(roomId).emit('fetchGameState', roomId);
+    if (roomsManager.get(roomId)) {
+      socket.emit('fetchNodeState', roomsManager.get(roomId).getState());
+      socket.broadcast.to(roomId).emit('fetchBothStates', roomId, roomsManager.get(roomId).getState());
+    } else {
+      socket.broadcast.to(roomId).emit('fetchGameState', roomId);
+    }
   });
 
   socket.on('leaveRoom', (roomId) => {
