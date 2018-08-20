@@ -10,9 +10,11 @@ const app    = express();
 const server = http.createServer(app);
 const io     = socketIO(server);
 
+const RoomsManager = require('./rooms-manager');
+
 app.use(express.static(publicPath));
 
-const rooms = {};
+const roomsManager = new RoomsManager(io);
 
 io.on('connection', socket => {
   console.log('New user connected');
@@ -20,8 +22,8 @@ io.on('connection', socket => {
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
 
-    rooms[roomId]
-      ? io.to(roomId).emit('fetchBothStates', roomId, rooms[roomId])
+    roomsManager.get(roomId)
+      ? io.to(roomId).emit('fetchBothStates', roomId, roomsManager.get(roomId).getState())
       : io.to(roomId).emit('fetchGameState', roomId);
   });
 
@@ -33,24 +35,24 @@ io.on('connection', socket => {
 
   socket.on('proposeTeammate', (roomId, playerId) => {
     updateNodeState(roomId, () => {
-      toggleTeammate(roomId, playerId);
+      roomsManager.get(roomId).toggleTeammate(playerId);
     });
   });
 
   socket.on('clearProposedTeam', (roomId) => {
     updateNodeState(roomId, () => {
-      rooms[roomId].team = [];
+      roomsManager.get(roomId).clearTeam();
     });
   });
 
   socket.on('proposeExecutionTarget', (roomId, playerId) => {
     updateNodeState(roomId, () => {
-      rooms[roomId].executionTargetId = playerId;
+      roomsManager.get(roomId).setExecutionTarget(playerId);
     });
   });
 
   socket.on('stateChange', (roomId) => {
-    delete rooms[roomId];
+    roomsManager.destroy(roomId);
 
     io.to(roomId).emit('fetchGameState', roomId);
   });
@@ -65,32 +67,9 @@ server.listen(port, () => {
 });
 
 function updateNodeState(roomId, callback = () => {}) {
-  initRoomIfMissing(roomId);
+  roomsManager.createIfMissing(roomId);
 
   callback();
 
-  io.to(roomId).emit('fetchNodeState', rooms[roomId]);
-}
-
-function toggleTeammate(roomId, playerId) {
-  const index = rooms[roomId].team.findIndex(id => id === playerId);
-
-  index > -1
-    ? rooms[roomId].team.splice(index, 1)
-    : rooms[roomId].team.push(playerId);
-}
-
-function initRoomIfMissing(roomId) {
-  if (roomNeedsCreation(roomId)) initRoom(roomId);
-}
-
-function roomNeedsCreation(roomId) {
-  return !(rooms[roomId] && rooms[roomId].team);
-}
-
-function initRoom(roomId) {
-  rooms[roomId] = {
-    team: [],
-    executionTargetId: null
-  };
+  io.to(roomId).emit('fetchNodeState', roomsManager.get(roomId).getState());
 }
