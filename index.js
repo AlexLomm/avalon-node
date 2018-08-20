@@ -30,6 +30,14 @@ io.on('connection', socket => {
     }
   });
 
+  socket.on('rejoinRoom', (roomId) => {
+    socket.join(roomId);
+
+    roomsManager.createIfMissing(roomId);
+
+    socket.emit('fetchNodeState', roomsManager.get(roomId).getState());
+  });
+
   socket.on('leaveRoom', (roomId) => {
     socket.leave(roomId);
 
