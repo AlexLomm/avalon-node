@@ -37,6 +37,12 @@ io.on('connection', socket => {
     });
   });
 
+  socket.on('clearProposedTeam', (roomId) => {
+    updateNodeState(roomId, () => {
+      rooms[roomId].team = [];
+    });
+  });
+
   socket.on('proposeExecutionTarget', (roomId, playerId) => {
     updateNodeState(roomId, () => {
       rooms[roomId].executionTargetId = playerId;
