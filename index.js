@@ -19,6 +19,10 @@ const roomsManager = new RoomsManager(io);
 io.on('connection', socket => {
   console.log('New user connected');
 
+  socket.on('recreateGame', (oldGameId, newGameId) => {
+    io.to(oldGameId).emit('recreateGame', newGameId);
+  });
+
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
 
