@@ -8,28 +8,40 @@ const RoomsManager = function (io) {
   // purging inactive rooms
   setInterval(() => {
     Object.keys(this.rooms).forEach(roomId => {
-      const inactivityPeriod = new Date() - this.get(roomId).updatedAt;
+      const room = this.get(roomId);
+
+      const inactivityPeriod = new Date() - room.updatedAt;
 
       if (inactivityPeriod > 30 * 60 * 1000) {
-        this.io.to(roomId).emit('fetchNodeState', this.get(roomId).reset().getState());
+        room.emitToAll('fetchNodeState', {state: room.reset().getState()});
 
-        this.destroy(roomId);
+        this.destroyRoom(roomId);
       }
     });
   }, 10 * 60 * 1000);
 };
 
-RoomsManager.prototype.createIfMissing = function (roomId) {
-  if (this.get(roomId)) return;
+RoomsManager.prototype.getOrCreate = function (roomId) {
+  const room = this.get(roomId);
 
-  this.rooms[roomId] = new Room(roomId);
+  if (room) return room;
+
+  this.add(roomId);
+
+  return this.get(roomId);
 };
 
 RoomsManager.prototype.get = function (roomId) {
   return this.rooms[roomId];
 };
 
-RoomsManager.prototype.destroy = function (roomId) {
+RoomsManager.prototype.add = function (roomId) {
+  this.rooms[roomId] = new Room(roomId);
+};
+
+RoomsManager.prototype.destroyRoom = function (roomId) {
+  this.rooms[roomId].destroy();
+
   delete this.rooms[roomId];
 };
 
