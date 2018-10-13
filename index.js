@@ -11,6 +11,7 @@ const server = http.createServer(app);
 const io     = socketIO(server);
 
 const RoomsManager = require('./rooms-manager');
+const Player       = require('./player');
 
 app.use(express.static(publicPath));
 
@@ -19,33 +20,28 @@ const roomsManager = new RoomsManager(io);
 io.on('connection', socket => {
   console.log('New user connected');
 
-  socket.on('recreateGame', (oldGameId, newGameId) => {
-    io.to(oldGameId).emit('recreateGame', newGameId);
+  socket.on('recreateGame', (oldRoomId, newRoomId) => {
+    const room = roomsManager.get(oldRoomId);
+
+    room.emitToAll('recreateGame', {roomId: newRoomId});
   });
 
-  socket.on('joinRoom', (roomId) => {
-    socket.join(roomId);
+  socket.on('joinRoom', (roomId, playerId) => {
+    const {room, player} = joinRoom(roomId, playerId, socket);
 
-    if (roomsManager.get(roomId)) {
-      socket.emit('fetchNodeState', roomsManager.get(roomId).getState());
-      socket.broadcast.to(roomId).emit('fetchBothStates', roomId, roomsManager.get(roomId).getState());
-    } else {
-      socket.broadcast.to(roomId).emit('fetchGameState', roomId);
-    }
+    room.emitToAllExcept('fetchBothStates', {roomId, state: room.getState()}, player.id);
   });
 
-  socket.on('rejoinRoom', (roomId) => {
-    socket.join(roomId);
-
-    roomsManager.createIfMissing(roomId);
-
-    socket.emit('fetchNodeState', roomsManager.get(roomId).getState());
+  socket.on('rejoinRoom', (roomId, playerId) => {
+    joinRoom(roomId, playerId, socket);
   });
 
-  socket.on('leaveRoom', (roomId) => {
-    socket.leave(roomId);
+  socket.on('leaveRoom', (roomId, playerId) => {
+    const room = roomsManager.get(roomId);
 
-    io.to(roomId).emit('fetchGameState', roomId);
+    room.removePlayer(playerId);
+
+    room.emitToAll('fetchGameState', {roomId});
   });
 
   socket.on('proposeTeammate', (roomId, playerId) => {
@@ -67,9 +63,11 @@ io.on('connection', socket => {
   });
 
   socket.on('stateChange', (roomId) => {
-    roomsManager.destroy(roomId);
+    const room = roomsManager.get(roomId);
 
-    io.to(roomId).emit('fetchGameState', roomId);
+    room.resetState();
+
+    room.emitToAll('fetchGameState', {roomId});
   });
 
   socket.on('disconnect', () => {
@@ -81,10 +79,23 @@ server.listen(port, () => {
   console.log(`Server is up on port ${port}`);
 });
 
+function joinRoom(roomId, playerId, socket) {
+  socket.join(roomId);
+
+  const room   = roomsManager.getOrCreate(roomId);
+  const player = new Player(playerId, socket);
+
+  room.addPlayer(player);
+
+  player.emit('fetchNodeState', {state: room.getState()});
+
+  return {room, player};
+}
+
 function updateNodeState(roomId, callback = () => {}) {
-  roomsManager.createIfMissing(roomId);
+  const room = roomsManager.getOrCreate(roomId);
 
   callback();
 
-  io.to(roomId).emit('fetchNodeState', roomsManager.get(roomId).getState());
+  room.emitToAll('fetchNodeState', {state: room.getState()});
 }
