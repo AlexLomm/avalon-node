@@ -1,6 +1,6 @@
 {
   "name": "avalon-node",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "",
   "main": "app.js",
   "scripts": {
@@ -12,5 +12,8 @@
   "dependencies": {
     "express": "^4.16.3",
     "socket.io": "^2.1.1"
+  },
+  "devDependencies": {
+    "jest": "^23.6.0"
   }
 }
