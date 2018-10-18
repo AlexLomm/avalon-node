@@ -66,6 +66,8 @@ Room.prototype.destroy = function () {
 Room.prototype.addPlayer = function (player) {
   this.removePlayer(player.id);
 
+  player.joinRoom(this.roomId);
+
   this.players.push(player);
 
   return this;

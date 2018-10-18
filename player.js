@@ -5,13 +5,17 @@ const Player = function (id, socket) {
   this.acknowledgementIntervalHandle = null;
 };
 
+Player.prototype.joinRoom = function (roomId) {
+  this.socket.join(roomId);
+};
+
 Player.prototype.leaveRoom = function (roomId) {
   if (this.socket.connected) {
     this.socket.leave(roomId);
   }
 };
 
-Player.prototype.emit = function (eventName, payload) {
+Player.prototype.emit = function (eventName, payload, retryInterval = 300) {
   this._resetEmissionLoop();
 
   this._emit(eventName, payload);
@@ -21,7 +25,7 @@ Player.prototype.emit = function (eventName, payload) {
 
     // Give up after several attempts
     if (this.timesReemissionsAttempted > 2) this._resetEmissionLoop();
-  }, 300);
+  }, retryInterval);
 };
 
 Player.prototype._resetEmissionLoop = function () {
@@ -32,7 +36,6 @@ Player.prototype._resetEmissionLoop = function () {
 Player.prototype._emit = function (eventName, payload) {
   this.timesReemissionsAttempted++;
   this.socket.emit(eventName, payload, () => {
-    console.log('CONFIRMED');
     this._resetEmissionLoop();
   });
 };
