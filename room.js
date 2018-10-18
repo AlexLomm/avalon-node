@@ -10,10 +10,22 @@ Room.prototype.resetState = function () {
   this.team              = [];
   this.executionTargetId = null;
 
+  this._lockState();
+
   return this;
 };
 
+Room.prototype._lockState = function () {
+  this.stateIsLocked = true;
+};
+
+Room.prototype._unlockState = function () {
+  this.stateIsLocked = false;
+};
+
 Room.prototype.toggleTeammate = function (playerId) {
+  this._unlockState();
+
   const index = this.team.findIndex(id => id === playerId);
 
   index > -1
@@ -24,12 +36,16 @@ Room.prototype.toggleTeammate = function (playerId) {
 };
 
 Room.prototype.clearTeam = function () {
+  this._unlockState();
+
   this.team = [];
 
   return this;
 };
 
 Room.prototype.setExecutionTarget = function (playerId) {
+  this._unlockState();
+
   this.executionTargetId = playerId;
 
   return this;
@@ -37,6 +53,7 @@ Room.prototype.setExecutionTarget = function (playerId) {
 
 Room.prototype.getState = function () {
   return {
+    stateIsLocked: this.stateIsLocked,
     team: this.team,
     executionTargetId: this.executionTargetId
   };
@@ -48,6 +65,8 @@ Room.prototype.destroy = function () {
 
 Room.prototype.addPlayer = function (player) {
   this.removePlayer(player.id);
+
+  player.joinRoom(this.roomId);
 
   this.players.push(player);
 

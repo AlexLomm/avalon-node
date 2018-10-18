@@ -80,8 +80,6 @@ server.listen(port, () => {
 });
 
 function joinRoom(roomId, playerId, socket) {
-  socket.join(roomId);
-
   const room   = roomsManager.getOrCreate(roomId);
   const player = new Player(playerId, socket);
 
