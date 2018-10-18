@@ -10,9 +10,7 @@ Player.prototype.joinRoom = function (roomId) {
 };
 
 Player.prototype.leaveRoom = function (roomId) {
-  if (this.socket.connected) {
-    this.socket.leave(roomId);
-  }
+  this.socket.leave(roomId);
 };
 
 Player.prototype.emit = function (eventName, payload, retryInterval = 300) {
