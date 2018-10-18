@@ -139,4 +139,38 @@ describe('room', () => {
     expect(room.getState().stateIsLocked).toStrictEqual(false);
     room.resetState();
   });
+
+  test('should emit to all players', () => {
+    const room = new Room();
+
+    const players = [new Player('id-1', {}), new Player('id-2', {})];
+
+    players.forEach(player => {
+      room.addPlayer(player);
+
+      jest.spyOn(player, 'emit');
+    });
+
+    room.emitToAll('test', {});
+
+    expect(room.players[0].emit).toBeCalled();
+    expect(room.players[1].emit).toBeCalled();
+  });
+
+  test('should emit to all players except the one specified', () => {
+    const room = new Room();
+
+    const players = [new Player('id-1', {}), new Player('id-2', {})];
+
+    players.forEach(player => {
+      room.addPlayer(player);
+
+      jest.spyOn(player, 'emit');
+    });
+
+    room.emitToAllExcept('test', {}, 'id-2');
+
+    expect(room.players[0].emit).toBeCalled();
+    expect(room.players[1].emit).toBeCalledTimes(0);
+  });
 });

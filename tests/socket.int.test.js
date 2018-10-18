@@ -33,7 +33,7 @@ function spawnClient() {
   });
 }
 
-describe('player socket.io', () => {
+describe('sockets for players', () => {
   test('should emit to client', (done) => {
     io.on('connection', (socket) => {
       const player = new Player('some-id', socket);
@@ -116,8 +116,4 @@ describe('player socket.io', () => {
 
     spawnClient().on('testEvent', onTestEventSpy);
   });
-});
-
-describe('Room socket.io', () => {
-  //
 });
