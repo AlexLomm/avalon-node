@@ -1,8 +1,8 @@
 const ioClient = require('socket.io-client');
 const http     = require('http');
 const socketIO = require('socket.io');
-const Player   = require('../player');
-const Room     = require('../room');
+const Player   = require('./player');
+const Room     = require('./room');
 
 let httpServer;
 let httpServerAddr;
