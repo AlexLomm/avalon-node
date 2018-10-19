@@ -15,7 +15,7 @@ const Player       = require('./player');
 
 app.use(express.static(publicPath));
 
-const roomsManager = new RoomsManager(io);
+const roomsManager = new RoomsManager();
 
 io.on('connection', socket => {
   console.log('New user connected');

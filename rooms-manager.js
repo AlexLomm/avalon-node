@@ -1,24 +1,25 @@
 const Room = require('./room.js');
 
-const RoomsManager = function (io) {
-  this.io    = io;
+const RoomsManager = function () {
   this.rooms = {};
 
   // set up a job for periodically
   // purging inactive rooms
-  setInterval(() => {
-    Object.keys(this.rooms).forEach(roomId => {
-      const room = this.get(roomId);
+  setInterval(() => this.purgeInactiveRooms(), 10 * 60 * 1000);
+};
 
-      const inactivityPeriod = new Date() - room.updatedAt;
+RoomsManager.prototype.purgeInactiveRooms = function (inactivityThreshold = 30 * 60 * 1000) {
+  Object.keys(this.rooms).forEach(roomId => {
+    const room = this.get(roomId);
 
-      if (inactivityPeriod > 30 * 60 * 1000) {
-        room.emitToAll('fetchNodeState', {state: room.reset().getState()});
+    const inactivityPeriod = new Date() - room.updatedAt;
 
-        this.destroyRoom(roomId);
-      }
-    });
-  }, 10 * 60 * 1000);
+    if (inactivityPeriod > inactivityThreshold) {
+      room.emitToAll('fetchNodeState', {state: room.resetState().getState()});
+
+      this.destroyRoom(roomId);
+    }
+  });
 };
 
 RoomsManager.prototype.getOrCreate = function (roomId) {
