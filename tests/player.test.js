@@ -54,19 +54,15 @@ test('should leave the room', (done) => {
     const room   = new Room(roomId);
     const player = new Player('some-id', socket);
 
-    room.addPlayer(player);
-
-    setTimeout(() => {
+    room.addPlayer(player, () => {
       expect(player.socket.rooms[roomId]).toBeDefined();
 
-      room.removePlayer(player.id);
-
-      setTimeout(() => {
+      room.removePlayer(player.id, () => {
         expect(player.socket.rooms[roomId]).toBeUndefined();
 
         done();
-      }, 0);
-    }, 0);
+      });
+    });
   });
 
   spawnClient();

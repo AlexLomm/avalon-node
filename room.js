@@ -64,21 +64,21 @@ class Room {
     this.players.forEach(player => this.removePlayer(player.id));
   }
 
-  addPlayer(player) {
+  addPlayer(player, cb = () => {}) {
     this.removePlayer(player.id);
 
-    player.joinRoom(this.roomId);
+    player.joinRoom(this.roomId, cb);
 
     this.players.push(player);
 
     return this;
   }
 
-  removePlayer(playerId) {
+  removePlayer(playerId, cb = () => {}) {
     const index = this.players.findIndex(p => p.id === playerId);
 
     if (index > -1) {
-      this.players[index].leaveRoom(this.roomId);
+      this.players[index].leaveRoom(this.roomId, cb);
 
       this.players.splice(index, 1);
     }

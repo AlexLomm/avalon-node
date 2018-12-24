@@ -6,12 +6,12 @@ class Player {
     this.acknowledgementIntervalHandle = null;
   }
 
-  joinRoom(roomId) {
-    this.socket.join(roomId);
+  joinRoom(roomId, cb = () => {}) {
+    this.socket.join(roomId, cb);
   }
 
-  leaveRoom(roomId) {
-    this.socket.leave(roomId);
+  leaveRoom(roomId, cb = () => {}) {
+    this.socket.leave(roomId, cb);
   }
 
   emit(eventName, payload, retryInterval = 300) {
