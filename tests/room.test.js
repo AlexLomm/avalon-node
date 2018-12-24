@@ -1,7 +1,7 @@
-const Room   = require('./room');
-const Player = require('./player');
+const Room   = require('../room');
+const Player = require('../player');
 
-jest.mock('./player');
+jest.mock('../player');
 
 test('should reset the room to it\'s original state', () => {
   const room = new Room();

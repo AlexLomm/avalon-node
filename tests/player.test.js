@@ -1,8 +1,8 @@
 const ioClient = require('socket.io-client');
 const http     = require('http');
 const socketIO = require('socket.io');
-const Player   = require('./player');
-const Room     = require('./room');
+const Player   = require('../player');
+const Room     = require('../room');
 
 let httpServer;
 let httpServerAddr;
@@ -54,27 +54,21 @@ test('should leave the room', (done) => {
     const room   = new Room(roomId);
     const player = new Player('some-id', socket);
 
-    room.addPlayer(player);
-
-    setTimeout(() => {
+    room.addPlayer(player, () => {
       expect(player.socket.rooms[roomId]).toBeDefined();
 
-      room.removePlayer(player.id);
-
-      setTimeout(() => {
+      room.removePlayer(player.id, () => {
         expect(player.socket.rooms[roomId]).toBeUndefined();
 
         done();
-      }, 0);
-    }, 0);
+      });
+    });
   });
 
   spawnClient();
 });
 
 test('should re-emit to the client if the previous emission was never acknowledged', (done) => {
-  jest.setTimeout(500);
-
   io.on('connection', (socket) => {
     const player = new Player('some-id', socket);
 
@@ -98,19 +92,29 @@ test('should re-emit to the client if the previous emission was never acknowledg
 });
 
 test('should stop re-emitting to the client after the previous emission was acknowledged', (done) => {
+  jest.useFakeTimers();
+
   io.on('connection', (socket) => {
     const player = new Player('some-id', socket);
 
-    player.emit('testEvent', {}, 50);
+    player.emit('testEvent', {}, 300);
   });
 
+  let attempts         = 1;
   const onTestEventSpy = jest.fn((payload, acknowledge) => {
+    if (attempts < 2) {
+      attempts++;
+
+      jest.advanceTimersByTime(300);
+
+      return;
+    }
+
     acknowledge();
 
-    setTimeout(() => {
-      expect(onTestEventSpy).toBeCalledTimes(1);
-      done();
-    }, 150);
+    expect(onTestEventSpy).toBeCalledTimes(2);
+
+    done();
   });
 
   spawnClient().on('testEvent', onTestEventSpy);
