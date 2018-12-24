@@ -13,7 +13,7 @@ class RoomsManager {
     Object.keys(this.rooms).forEach(roomId => {
       const room = this.get(roomId);
 
-      const inactivityPeriod = new Date() - room.updatedAt;
+      const inactivityPeriod = Date.now() - room.updatedAt;
 
       if (inactivityPeriod > inactivityThreshold) {
         room.emitToAll('fetchNodeState', {state: room.resetState().getState()});

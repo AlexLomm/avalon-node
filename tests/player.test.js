@@ -69,8 +69,6 @@ test('should leave the room', (done) => {
 });
 
 test('should re-emit to the client if the previous emission was never acknowledged', (done) => {
-  jest.setTimeout(500);
-
   io.on('connection', (socket) => {
     const player = new Player('some-id', socket);
 
@@ -94,19 +92,29 @@ test('should re-emit to the client if the previous emission was never acknowledg
 });
 
 test('should stop re-emitting to the client after the previous emission was acknowledged', (done) => {
+  jest.useFakeTimers();
+
   io.on('connection', (socket) => {
     const player = new Player('some-id', socket);
 
-    player.emit('testEvent', {}, 50);
+    player.emit('testEvent', {}, 300);
   });
 
+  let attempts         = 1;
   const onTestEventSpy = jest.fn((payload, acknowledge) => {
+    if (attempts < 2) {
+      attempts++;
+
+      jest.advanceTimersByTime(300);
+
+      return;
+    }
+
     acknowledge();
 
-    setTimeout(() => {
-      expect(onTestEventSpy).toBeCalledTimes(1);
-      done();
-    }, 150);
+    expect(onTestEventSpy).toBeCalledTimes(2);
+
+    done();
   });
 
   spawnClient().on('testEvent', onTestEventSpy);

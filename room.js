@@ -1,7 +1,7 @@
 class Room {
   constructor(roomId) {
     this.roomId    = roomId;
-    this.updatedAt = new Date();
+    this.updatedAt = Date.now();
     this.players   = [];
 
     this.resetState();
@@ -106,7 +106,7 @@ Object.keys(Room.prototype)
   .forEach((methodName) => {
     const method               = Room.prototype[methodName];
     Room.prototype[methodName] = function (...args) {
-      this.updatedAt = new Date();
+      this.updatedAt = Date.now();
 
       return method.apply(this, args);
     };
