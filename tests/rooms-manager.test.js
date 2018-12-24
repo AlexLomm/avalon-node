@@ -1,5 +1,5 @@
-const RoomsManager = require('./rooms-manager');
-const Room         = require('./room');
+const RoomsManager = require('../rooms-manager');
+const Room         = require('../room');
 
 Room.prototype.emitToAll = jest.fn();
 
