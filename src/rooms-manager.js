@@ -1,3 +1,5 @@
+'use strict';
+
 const Room = require('./room.js');
 
 class RoomsManager {

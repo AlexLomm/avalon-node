@@ -1,8 +1,10 @@
+'use strict';
+
 class Room {
   constructor(roomId) {
     this.roomId    = roomId;
     this.updatedAt = Date.now();
-    this.players   = [];
+    this.sockets   = [];
 
     this.resetState();
   }
@@ -61,41 +63,43 @@ class Room {
   }
 
   destroy() {
-    this.players.forEach(player => this.removePlayer(player.id));
+    this.sockets.forEach((socket) => this.leave(socket));
   }
 
-  addPlayer(player, cb = () => {}) {
-    this.removePlayer(player.id);
+  join(socket, cb = () => {}) {
+    this.leave(socket);
 
-    player.joinRoom(this.roomId, cb);
+    socket.join(this.roomId, cb);
 
-    this.players.push(player);
+    this.sockets.push(socket);
 
     return this;
   }
 
-  removePlayer(playerId, cb = () => {}) {
-    const index = this.players.findIndex(p => p.id === playerId);
+  leave(socket, cb = () => {}) {
+    const index = this.sockets.findIndex((s) => s.user.id === socket.user.id);
 
     if (index > -1) {
-      this.players[index].leaveRoom(this.roomId, cb);
+      this.sockets[index].leave(this.roomId, cb);
 
-      this.players.splice(index, 1);
+      this.sockets.splice(index, 1);
     }
 
     return this;
   }
 
   emitToAll(eventName, payload) {
-    this.players.forEach((player) => player.emit(eventName, payload));
+    this.sockets.forEach(
+      (socket) => socket.emitWithAcknowledgement(eventName, payload)
+    );
 
     return this;
   }
 
-  emitToAllExcept(eventName, payload, playerId) {
-    this.players
-      .filter((player) => player.id !== playerId)
-      .forEach((player) => player.emit(eventName, payload));
+  emitToAllExcept(eventName, payload, userId) {
+    this.sockets
+      .filter((socket) => socket.user.id !== userId)
+      .forEach((socket) => socket.emitWithAcknowledgement(eventName, payload));
 
     return this;
   }
@@ -104,7 +108,8 @@ class Room {
 // call touch before each method call
 Object.keys(Room.prototype)
   .forEach((methodName) => {
-    const method               = Room.prototype[methodName];
+    const method = Room.prototype[methodName];
+
     Room.prototype[methodName] = function (...args) {
       this.updatedAt = Date.now();
 
