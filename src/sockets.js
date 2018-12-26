@@ -41,13 +41,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('joinRoom', (roomId) => {
-    const room = joinRoom(roomId, socket);
-
-    room.emitToAllExcept(
-      'fetchBothStates',
-      {roomId, state: room.getState()},
-      socket.user.id
-    );
+    joinRoom(roomId, socket);
   });
 
   socket.on('rejoinRoom', (roomId) => {
@@ -58,24 +52,31 @@ function initEventListeners(socket) {
     const room = roomsManager.get(roomId);
 
     room.leave(socket);
-
-    room.emitToAll('fetchGameState', {roomId});
   });
 
   socket.on('proposeTeammate', (roomId, playerId) => {
-    updateNodeState(roomId, () => {
+    updateNodeState({
+      roomId,
+      senderId: socket.user.id,
+    }, () => {
       roomsManager.get(roomId).toggleTeammate(playerId);
     });
   });
 
   socket.on('clearProposedTeam', (roomId) => {
-    updateNodeState(roomId, () => {
+    updateNodeState({
+      roomId,
+      senderId: socket.user.id,
+    }, () => {
       roomsManager.get(roomId).clearTeam();
     });
   });
 
   socket.on('proposeExecutionTarget', (roomId, playerId) => {
-    updateNodeState(roomId, () => {
+    updateNodeState({
+      roomId,
+      senderId: socket.user.id,
+    }, () => {
       roomsManager.get(roomId).setExecutionTarget(playerId);
     });
   });
@@ -114,10 +115,13 @@ function joinRoom(roomId, socket) {
   return room;
 }
 
-function updateNodeState(roomId, callback = () => {}) {
+function updateNodeState({roomId, senderId}, callback = () => {}) {
   const room = roomsManager.getOrCreate(roomId);
 
   callback();
 
-  room.emitToAll('fetchNodeState', {state: room.getState()});
+  room.emitToAll('fetchNodeState', {
+    state: room.getState(),
+    senderId
+  });
 }
