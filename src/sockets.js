@@ -13,13 +13,26 @@ module.exports = function (io) {
     let eventListenersAreInit = false;
 
     socket.emitWithAcknowledgement('requestAuth', {}, async (token) => {
-      await authenticate(socket, token);
+      try {
+        // TODO: refactor
+        const {user} = await jwt.verify(token);
 
-      if (eventListenersAreInit) return;
+        socket.user = user;
 
-      eventListenersAreInit = true;
+        if (eventListenersAreInit) return;
 
-      initEventListeners(socket);
+        eventListenersAreInit = true;
+
+        initEventListeners(socket);
+      } catch (e) {
+        console.log(e);
+
+        socket.disconnect();
+      }
+    });
+
+    socket.on('reconnect', () => {
+      console.log('reconnect');
     });
 
     socket.on('disconnect', () => {
@@ -30,8 +43,17 @@ module.exports = function (io) {
 
 // TODO: extract handlers
 function initEventListeners(socket) {
-  socket.on('updateToken', (token) => {
-    authenticate(socket, token);
+  socket.on('updateToken', async (token) => {
+    // TODO: refactor
+    try {
+      const {user} = await jwt.verify(token);
+
+      socket.user = user;
+    } catch (e) {
+      console.log(e);
+
+      socket.disconnect();
+    }
   });
 
   socket.on('recreateGame', (oldRoomId, newRoomId) => {
