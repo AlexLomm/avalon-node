@@ -1,5 +1,5 @@
-const RoomsManager = require('../rooms-manager');
-const Room         = require('../room');
+const RoomsManager = require('../src/rooms-manager');
+const Room         = require('../src/room');
 
 test('should add and then get a room', () => {
   const manager = new RoomsManager();
