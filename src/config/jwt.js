@@ -1,9 +1,10 @@
 'use strict';
 
-const fs  = require('fs');
-const jwt = require('jsonwebtoken');
+const fs         = require('fs');
+const jwt        = require('jsonwebtoken');
+const {rootPath} = require('../utils/path');
 
-const publicKey = fs.readFileSync('./config/jwt/public.pem', 'utf8');
+const publicKey = fs.readFileSync(`${rootPath}/config/jwt/public.pem`, 'utf8');
 
 module.exports = {
   verify(token) {
