@@ -62,6 +62,10 @@ class Room {
     };
   }
 
+  getUsers() {
+    return this.sockets.map(socket => socket.user);
+  }
+
   destroy() {
     this.sockets.forEach((socket) => this.leave(socket));
   }

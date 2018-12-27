@@ -31,10 +31,12 @@ module.exports = function (io) {
       }
     });
 
+    // TODO: emit updated `roomUsers` to the room(s)
     socket.on('reconnect', () => {
       console.log('reconnect');
     });
 
+    // TODO: emit updated `roomUsers` to the room(s)
     socket.on('disconnect', () => {
       console.log('User was disconnected');
     });
@@ -59,6 +61,8 @@ function initEventListeners(socket) {
   socket.on('recreateGame', (oldRoomId, newRoomId) => {
     const room = roomsManager.get(oldRoomId);
 
+    if (!room) return;
+
     room.emitToAll('recreateGame', {roomId: newRoomId});
   });
 
@@ -73,7 +77,14 @@ function initEventListeners(socket) {
   socket.on('leaveRoom', (roomId) => {
     const room = roomsManager.get(roomId);
 
+    if (!room) return;
+
     room.leave(socket);
+
+    room.emitToAll(
+      'fetchRoomUsers',
+      {roomUsers: room.getUsers()}
+    );
   });
 
   socket.on('proposeTeammate', (roomId, playerId) => {
@@ -81,7 +92,11 @@ function initEventListeners(socket) {
       roomId,
       senderId: socket.user.id,
     }, () => {
-      roomsManager.get(roomId).toggleTeammate(playerId);
+      const room = roomsManager.get(roomId);
+
+      if (!room) return;
+
+      room.toggleTeammate(playerId);
     });
   });
 
@@ -90,7 +105,11 @@ function initEventListeners(socket) {
       roomId,
       senderId: socket.user.id,
     }, () => {
-      roomsManager.get(roomId).clearTeam();
+      const room = roomsManager.get(roomId);
+
+      if (!room) return;
+
+      room.clearTeam();
     });
   });
 
@@ -99,29 +118,36 @@ function initEventListeners(socket) {
       roomId,
       senderId: socket.user.id,
     }, () => {
-      roomsManager.get(roomId).setExecutionTarget(playerId);
+      const room = roomsManager.get(roomId);
+
+      if (!room) return;
+
+      room.setExecutionTarget(playerId);
     });
   });
 
   socket.on('stateChange', (roomId) => {
     const room = roomsManager.get(roomId);
 
+    if (!room) return;
+
     room.resetState();
 
     room.emitToAll('fetchGameState', {roomId});
   });
-}
 
-async function authenticate(socket, token) {
-  try {
-    const {user} = await jwt.verify(token);
+  socket.on('sendMessage', (roomId, message) => {
+    const room = roomsManager.get(roomId);
 
-    socket.user = user;
-  } catch (e) {
-    console.log(e);
+    if (!room) return;
 
-    socket.disconnect();
-  }
+    // TODO: persist messages
+    // TODO: fetch old messages for new users
+
+    message.author = socket.user.id;
+
+    room.emitToAllExcept('messageReceived', message, socket.user.id);
+  });
 }
 
 function joinRoom(roomId, socket) {
@@ -132,6 +158,11 @@ function joinRoom(roomId, socket) {
   socket.emitWithAcknowledgement(
     'fetchNodeState',
     {state: room.getState()}
+  );
+
+  room.emitToAll(
+    'fetchRoomUsers',
+    {roomUsers: room.getUsers()}
   );
 
   return room;
