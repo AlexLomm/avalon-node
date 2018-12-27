@@ -59,6 +59,8 @@ function initEventListeners(socket) {
   socket.on('recreateGame', (oldRoomId, newRoomId) => {
     const room = roomsManager.get(oldRoomId);
 
+    if (!room) return;
+
     room.emitToAll('recreateGame', {roomId: newRoomId});
   });
 
@@ -73,6 +75,8 @@ function initEventListeners(socket) {
   socket.on('leaveRoom', (roomId) => {
     const room = roomsManager.get(roomId);
 
+    if (!room) return;
+
     room.leave(socket);
   });
 
@@ -81,7 +85,11 @@ function initEventListeners(socket) {
       roomId,
       senderId: socket.user.id,
     }, () => {
-      roomsManager.get(roomId).toggleTeammate(playerId);
+      const room = roomsManager.get(roomId);
+
+      if (!room) return;
+
+      room.toggleTeammate(playerId);
     });
   });
 
@@ -90,7 +98,11 @@ function initEventListeners(socket) {
       roomId,
       senderId: socket.user.id,
     }, () => {
-      roomsManager.get(roomId).clearTeam();
+      const room = roomsManager.get(roomId);
+
+      if (!room) return;
+
+      room.clearTeam();
     });
   });
 
@@ -99,29 +111,36 @@ function initEventListeners(socket) {
       roomId,
       senderId: socket.user.id,
     }, () => {
-      roomsManager.get(roomId).setExecutionTarget(playerId);
+      const room = roomsManager.get(roomId);
+
+      if (!room) return;
+
+      room.setExecutionTarget(playerId);
     });
   });
 
   socket.on('stateChange', (roomId) => {
     const room = roomsManager.get(roomId);
 
+    if (!room) return;
+
     room.resetState();
 
     room.emitToAll('fetchGameState', {roomId});
   });
-}
 
-async function authenticate(socket, token) {
-  try {
-    const {user} = await jwt.verify(token);
+  socket.on('sendMessage', (roomId, message) => {
+    const room = roomsManager.get(roomId);
 
-    socket.user = user;
-  } catch (e) {
-    console.log(e);
+    if (!room) return;
 
-    socket.disconnect();
-  }
+    // TODO: persist messages
+    // TODO: fetch old messages for new users
+
+    message.author = socket.user.displayName;
+
+    room.emitToAllExcept('messageReceived', message, socket.user.id);
+  });
 }
 
 function joinRoom(roomId, socket) {
