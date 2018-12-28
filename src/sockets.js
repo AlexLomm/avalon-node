@@ -155,15 +155,14 @@ function joinRoom(roomId, socket) {
 
   room.join(socket);
 
-  socket.emitWithAcknowledgement(
-    'fetchNodeState',
-    {state: room.getState()}
-  );
+  socket.emitWithAcknowledgement('fetchNodeState', {
+    state: room.getState(),
+    senderId: socket.user.id,
+  });
 
-  room.emitToAll(
-    'fetchRoomUsers',
-    {roomUsers: room.getUsers()}
-  );
+  room.emitToAll('fetchRoomUsers', {
+    roomUsers: room.getUsers()
+  });
 
   return room;
 }
