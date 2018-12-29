@@ -17,6 +17,8 @@ module.exports = function (io) {
         // TODO: refactor
         const {user} = await jwt.verify(token);
 
+        disconnectExistingUser(io, user.id);
+
         socket.user = user;
 
         if (eventListenersAreInit) return;
@@ -42,6 +44,19 @@ module.exports = function (io) {
     });
   });
 };
+
+function disconnectExistingUser(io, id) {
+  const existingSocket = Object.values(io.sockets.sockets)
+    .find((socket) => {
+      if (!socket.user) return false;
+
+      return socket.user.id === id;
+    });
+
+  if (existingSocket) {
+    existingSocket.emitWithAcknowledgement('logOut');
+  }
+}
 
 // TODO: extract handlers
 function initEventListeners(socket) {
