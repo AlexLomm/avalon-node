@@ -17,7 +17,7 @@ module.exports = function (io) {
         // TODO: refactor
         const {user} = await jwt.verify(token);
 
-        disconnectExistingUser(io, user.id);
+        disconnectExistingUser(io, socket, user.id);
 
         socket.user = user;
 
@@ -45,15 +45,15 @@ module.exports = function (io) {
   });
 };
 
-function disconnectExistingUser(io, id) {
+function disconnectExistingUser(io, socket, userId) {
   const existingSocket = Object.values(io.sockets.sockets)
     .find((socket) => {
       if (!socket.user) return false;
 
-      return socket.user.id === id;
+      return socket.user.id === userId;
     });
 
-  if (existingSocket) {
+  if (existingSocket && existingSocket !== socket) {
     existingSocket.emitWithAcknowledgement('logOut');
   }
 }
