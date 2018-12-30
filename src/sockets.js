@@ -1,3 +1,4 @@
+const {imageUrl}      = require('gravatar-api');
 const jwt             = require('./config/jwt');
 const socketDecorator = require('./socket-decorator');
 const RoomsManager    = require('./rooms-manager');
@@ -14,8 +15,7 @@ module.exports = function (io) {
 
     socket.emitWithAcknowledgement('requestAuth', {}, async (token) => {
       try {
-        // TODO: refactor
-        const {user} = await jwt.verify(token);
+        const user = await extractUserFromToken(token);
 
         disconnectExistingUser(io, socket, user.id);
 
@@ -70,9 +70,7 @@ function initEventListeners(socket) {
   socket.on('updateToken', async (token) => {
     // TODO: refactor
     try {
-      const {user} = await jwt.verify(token);
-
-      socket.user = user;
+      socket.user = await extractUserFromToken(token);
     } catch (e) {
       console.log(e);
 
@@ -170,6 +168,19 @@ function initEventListeners(socket) {
 
     room.emitToAllExcept('messageReceived', message, socket.user.id);
   });
+}
+
+async function extractUserFromToken(token) {
+  const {user} = await jwt.verify(token);
+
+  user.gravatarUrl = imageUrl({
+    email: user.email,
+    parameters: {default: 'monsterid'}
+  });
+
+  delete user['email'];
+
+  return user;
 }
 
 function joinRoom(roomId, socket) {
