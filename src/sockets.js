@@ -33,13 +33,18 @@ module.exports = function (io) {
       }
     });
 
-    // TODO: emit updated `roomUsers` to the room(s)
     socket.on('reconnect', () => {
       console.log('reconnect');
     });
 
-    // TODO: emit updated `roomUsers` to the room(s)
     socket.on('disconnect', () => {
+      roomsManager.getSocketRooms(socket)
+        .forEach((r) => {
+          r.emitToAllExcept('fetchRoomUsers', {
+            roomUsers: r.getUsers()
+          }, socket.user.id);
+        });
+
       console.log('User was disconnected');
     });
   });

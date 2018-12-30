@@ -48,6 +48,11 @@ class RoomsManager {
 
     delete this.rooms[roomId];
   }
+
+  getSocketRooms(socket) {
+    Object.values(this.rooms)
+      .filter(r => r.includes(socket));
+  }
 }
 
 module.exports = RoomsManager;

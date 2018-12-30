@@ -107,6 +107,10 @@ class Room {
 
     return this;
   }
+
+  includes(socket) {
+    return this.sockets.find(s => s === socket);
+  }
 }
 
 // call touch before each method call
