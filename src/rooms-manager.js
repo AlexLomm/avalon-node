@@ -50,7 +50,7 @@ class RoomsManager {
   }
 
   getSocketRooms(socket) {
-    Object.values(this.rooms)
+    return Object.values(this.rooms)
       .filter(r => r.includes(socket));
   }
 }

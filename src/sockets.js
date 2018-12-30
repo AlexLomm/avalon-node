@@ -40,9 +40,11 @@ module.exports = function (io) {
     socket.on('disconnect', () => {
       roomsManager.getSocketRooms(socket)
         .forEach((r) => {
-          r.emitToAllExcept('fetchRoomUsers', {
+          r.leave(socket);
+
+          r.emitToAll('fetchRoomUsers', {
             roomUsers: r.getUsers()
-          }, socket.user.id);
+          });
         });
 
       console.log('User was disconnected');
