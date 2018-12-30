@@ -28,7 +28,8 @@ module.exports = (socket) => {
     eventName,
     payload,
     callback      = () => {},
-    retryInterval = 300
+    // TODO: handle over-the-interval ms lag
+    retryInterval = 1000
   ) => {
     _resetEmissionLoop();
 
