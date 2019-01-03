@@ -13,7 +13,7 @@ module.exports = function (io) {
 
     let eventListenersAreInit = false;
 
-    socket.emitWithAcknowledgement('requestAuth', {}, async (token) => {
+    socket.emitWithAcknowledgement('requestAuth', {}, async (token, roomId) => {
       try {
         const user = await extractUserFromToken(token);
 
@@ -26,6 +26,11 @@ module.exports = function (io) {
         eventListenersAreInit = true;
 
         initEventListeners(socket);
+
+        // reconnect to the room
+        if (!roomId) return;
+
+        joinRoom(socket, roomId);
       } catch (e) {
         console.log(e);
 
@@ -87,11 +92,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('joinRoom', (roomId) => {
-    joinRoom(roomId, socket);
-  });
-
-  socket.on('rejoinRoom', (roomId) => {
-    joinRoom(roomId, socket);
+    joinRoom(socket, roomId);
   });
 
   socket.on('leaveRoom', (roomId) => {
@@ -183,7 +184,7 @@ async function extractUserFromToken(token) {
   return user;
 }
 
-function joinRoom(roomId, socket) {
+function joinRoom(socket, roomId) {
   const room = roomsManager.getOrCreate(roomId);
 
   room.join(socket);
