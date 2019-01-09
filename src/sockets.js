@@ -31,6 +31,7 @@ module.exports = function (io) {
         if (!roomId) return;
 
         joinRoom(socket, roomId);
+        sendMessages(socket, roomId);
       } catch (e) {
         console.log(e);
 
@@ -109,7 +110,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('proposeTeammate', (roomId, playerId) => {
-    updateNodeState({
+    sendNodeState({
       roomId,
       senderId: socket.user.id,
     }, () => {
@@ -122,7 +123,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('clearProposedTeam', (roomId) => {
-    updateNodeState({
+    sendNodeState({
       roomId,
       senderId: socket.user.id,
     }, () => {
@@ -135,7 +136,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('proposeExecutionTarget', (roomId, playerId) => {
-    updateNodeState({
+    sendNodeState({
       roomId,
       senderId: socket.user.id,
     }, () => {
@@ -162,10 +163,9 @@ function initEventListeners(socket) {
 
     if (!room) return;
 
-    // TODO: persist messages
-    // TODO: fetch old messages for new users
-
     message.author = socket.user.id;
+
+    room.addMessage(message);
 
     room.emitToAllExcept('messageReceived', message, socket.user.id);
   });
@@ -201,7 +201,15 @@ function joinRoom(socket, roomId) {
   return room;
 }
 
-function updateNodeState({roomId, senderId}, callback = () => {}) {
+function sendMessages(socket, roomId) {
+  const room = roomsManager.get(roomId);
+
+  socket.emitWithAcknowledgement('fetchMessages', {
+    messages: room.getMessages(),
+  });
+}
+
+function sendNodeState({roomId, senderId}, callback = () => {}) {
   const room = roomsManager.getOrCreate(roomId);
 
   callback();
