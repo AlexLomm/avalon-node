@@ -13,7 +13,7 @@ module.exports = function (io) {
 
     let eventListenersAreInit = false;
 
-    socket.emitWithAcknowledgement('requestAuth', {}, async (token) => {
+    socket.emitWithAcknowledgement('requestAuth', {}, async (token, roomId) => {
       try {
         const user = await extractUserFromToken(token);
 
@@ -26,6 +26,12 @@ module.exports = function (io) {
         eventListenersAreInit = true;
 
         initEventListeners(socket);
+
+        // reconnect to the room
+        if (!roomId) return;
+
+        joinRoom(socket, roomId);
+        sendMessages(socket, roomId);
       } catch (e) {
         console.log(e);
 
@@ -87,11 +93,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('joinRoom', (roomId) => {
-    joinRoom(roomId, socket);
-  });
-
-  socket.on('rejoinRoom', (roomId) => {
-    joinRoom(roomId, socket);
+    joinRoom(socket, roomId);
   });
 
   socket.on('leaveRoom', (roomId) => {
@@ -108,7 +110,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('proposeTeammate', (roomId, playerId) => {
-    updateNodeState({
+    sendNodeState({
       roomId,
       senderId: socket.user.id,
     }, () => {
@@ -121,7 +123,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('clearProposedTeam', (roomId) => {
-    updateNodeState({
+    sendNodeState({
       roomId,
       senderId: socket.user.id,
     }, () => {
@@ -134,7 +136,7 @@ function initEventListeners(socket) {
   });
 
   socket.on('proposeExecutionTarget', (roomId, playerId) => {
-    updateNodeState({
+    sendNodeState({
       roomId,
       senderId: socket.user.id,
     }, () => {
@@ -156,15 +158,18 @@ function initEventListeners(socket) {
     room.emitToAll('fetchGameState', {roomId});
   });
 
+  socket.on('fetchMessages', (roomId) => {
+    sendMessages(socket, roomId);
+  });
+
   socket.on('sendMessage', (roomId, message) => {
     const room = roomsManager.get(roomId);
 
     if (!room) return;
 
-    // TODO: persist messages
-    // TODO: fetch old messages for new users
-
     message.author = socket.user.id;
+
+    room.addMessage(message);
 
     room.emitToAllExcept('messageReceived', message, socket.user.id);
   });
@@ -183,7 +188,7 @@ async function extractUserFromToken(token) {
   return user;
 }
 
-function joinRoom(roomId, socket) {
+function joinRoom(socket, roomId) {
   const room = roomsManager.getOrCreate(roomId);
 
   room.join(socket);
@@ -200,7 +205,15 @@ function joinRoom(roomId, socket) {
   return room;
 }
 
-function updateNodeState({roomId, senderId}, callback = () => {}) {
+function sendMessages(socket, roomId) {
+  const room = roomsManager.getOrCreate(roomId);
+
+  socket.emitWithAcknowledgement('fetchMessages', {
+    messages: room.getMessages(),
+  });
+}
+
+function sendNodeState({roomId, senderId}, callback = () => {}) {
   const room = roomsManager.getOrCreate(roomId);
 
   callback();

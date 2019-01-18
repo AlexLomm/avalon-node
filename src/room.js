@@ -5,6 +5,7 @@ class Room {
     this.roomId    = roomId;
     this.updatedAt = Date.now();
     this.sockets   = [];
+    this.messages  = [];
 
     this.resetState();
   }
@@ -108,8 +109,20 @@ class Room {
     return this;
   }
 
+  // TODO: review
   includes(socket) {
     return this.sockets.find(s => s === socket);
+  }
+
+  addMessage(message) {
+    this.messages = [
+      ...this.messages.slice(-99),
+      message,
+    ];
+  }
+
+  getMessages() {
+    return this.messages;
   }
 }
 
