@@ -158,6 +158,10 @@ function initEventListeners(socket) {
     room.emitToAll('fetchGameState', {roomId});
   });
 
+  socket.on('fetchMessages', (roomId) => {
+    sendMessages(socket, roomId);
+  });
+
   socket.on('sendMessage', (roomId, message) => {
     const room = roomsManager.get(roomId);
 
@@ -202,7 +206,7 @@ function joinRoom(socket, roomId) {
 }
 
 function sendMessages(socket, roomId) {
-  const room = roomsManager.get(roomId);
+  const room = roomsManager.getOrCreate(roomId);
 
   socket.emitWithAcknowledgement('fetchMessages', {
     messages: room.getMessages(),
