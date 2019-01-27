@@ -1,7 +1,5 @@
-const RoomsManager = require('./rooms-manager');
-const Room         = require('./room');
-
-Room.prototype.emitToAll = jest.fn();
+const RoomsManager = require('../src/rooms-manager');
+const Room         = require('../src/room');
 
 test('should add and then get a room', () => {
   const manager = new RoomsManager();
@@ -63,27 +61,24 @@ test('should check inactivity statuses for every room', () => {
   expect(manager.get).toBeCalledTimes(2);
 });
 
-test('should purge only inactive rooms', (done) => {
+test('should purge only inactive rooms', () => {
+  Room.emitToAll = jest.fn();
+
   const manager = new RoomsManager();
 
+  const pastDate = Date.now() - 1500;
+  jest.spyOn(Date, 'now')
+    .mockImplementationOnce(() => pastDate);
+
+  // the room is created in the
+  // past (because of the above mock)
   manager.add('id-1');
-  const room = manager.get('id-1');
 
-  jest.spyOn(room, 'resetState');
-  jest.spyOn(room, 'getState');
-  jest.spyOn(room, 'emitToAll');
+  // the room is created in the present
+  manager.add('id-2');
 
-  setTimeout(() => {
-    manager.add('id-2');
+  manager.purgeInactiveRooms(1000);
 
-    manager.purgeInactiveRooms(50);
-
-    expect(room.resetState).toBeCalled();
-    expect(room.getState).toBeCalled();
-    expect(room.emitToAll).toBeCalled();
-    expect(manager.get('id-1')).toBeUndefined();
-    expect(manager.get('id-2')).toBeDefined();
-
-    done();
-  }, 100);
+  expect(manager.get('id-1')).toBeUndefined();
+  expect(manager.get('id-2')).toBeDefined();
 });

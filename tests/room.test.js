@@ -1,7 +1,13 @@
-const Room   = require('./room');
-const Player = require('./player');
+const Room = require('../src/room');
 
-jest.mock('./player');
+function generateFakeSocket(id = 'some-id') {
+  return {
+    user: {id},
+    emitWithAcknowledgement: jest.fn(),
+    join: jest.fn(),
+    leave: jest.fn(),
+  };
+}
 
 test('should reset the room to it\'s original state', () => {
   const room = new Room();
@@ -16,19 +22,19 @@ test('should reset the room to it\'s original state', () => {
   expect(room.getState().stateIsLocked).toStrictEqual(true);
 });
 
-test('should not reset `roomId`, `players` and `updatedAt`', () => {
+test('should not reset `roomId`, `sockets` and `updatedAt`', () => {
   const room   = new Room('room-id');
-  room.players = ['something'];
+  room.sockets = ['something'];
 
   const roomId    = room.roomId;
   const updatedAt = room.updatedAt;
-  const players   = room.players;
+  const sockets   = room.sockets;
 
   room.resetState();
 
   expect(roomId).toStrictEqual(room.roomId);
   expect(updatedAt).toStrictEqual(room.updatedAt);
-  expect(players).toStrictEqual(['something']);
+  expect(sockets).toStrictEqual(['something']);
 });
 
 test('should toggle a teammate', () => {
@@ -70,49 +76,44 @@ test('should get the state', () => {
   expect(room.getState().executionTargetId).toBeDefined();
 });
 
-test('should remove the players from the room', () => {
+test('should remove the sockets from the room', () => {
   const room = new Room();
 
-  room.addPlayer(new Player('some-id', {}));
+  room.join(generateFakeSocket());
 
   room.destroy();
 
-  expect(room.players).toEqual([]);
+  expect(room.sockets).toEqual([]);
 });
 
-test('should add a player to the room', () => {
+test('should add a socket to the room', () => {
   const room   = new Room();
-  const player = new Player('some-id', {});
+  const socket = generateFakeSocket();
 
-  room.addPlayer(player);
+  room.join(socket);
 
-  expect(room.players).toEqual([player]);
+  expect(room.sockets).toEqual([socket]);
 });
 
-test('should replace a player with the similar id in the room', () => {
+test('should replace a socket with the similar id in the room', () => {
   const room    = new Room();
-  const player1 = new Player('some-id', {});
-  const player2 = new Player('some-id', {});
+  const socket1 = generateFakeSocket('some-id');
+  const socket2 = generateFakeSocket('some-id');
 
-  room.addPlayer(player1);
+  room.join(socket1);
+  room.join(socket2);
 
-  const spy = jest.spyOn(player1, 'leaveRoom');
-
-  room.addPlayer(player2);
-
-  expect(spy).toBeCalled();
-
-  expect(room.players).toEqual([player2]);
+  expect(room.sockets).toEqual([socket2]);
 });
 
-test('should remove all players from the room', () => {
+test('should remove all sockets from the room', () => {
   const room = new Room();
 
-  room.addPlayer(new Player('some-id', {}));
+  room.join(generateFakeSocket());
 
   room.destroy();
 
-  expect(room.players).toEqual([]);
+  expect(room.sockets).toEqual([]);
 });
 
 test('should lock the room state', () => {
@@ -139,36 +140,34 @@ test('should unlock the room state', () => {
   room.resetState();
 });
 
-test('should emit to all players', () => {
+test('should emit to all sockets', () => {
   const room = new Room();
 
-  const players = [new Player('id-1', {}), new Player('id-2', {})];
+  const sockets = [
+    generateFakeSocket('some-id-1'),
+    generateFakeSocket('some-id-2')
+  ];
 
-  players.forEach(player => {
-    room.addPlayer(player);
-
-    jest.spyOn(player, 'emit');
-  });
+  sockets.forEach(socket => room.join(socket));
 
   room.emitToAll('test', {});
 
-  expect(room.players[0].emit).toBeCalled();
-  expect(room.players[1].emit).toBeCalled();
+  expect(room.sockets[0].emitWithAcknowledgement).toBeCalled();
+  expect(room.sockets[1].emitWithAcknowledgement).toBeCalled();
 });
 
-test('should emit to all players except the one specified', () => {
+test('should emit to all sockets except the one specified', () => {
   const room = new Room();
 
-  const players = [new Player('id-1', {}), new Player('id-2', {})];
+  const sockets = [
+    generateFakeSocket('some-id-1'),
+    generateFakeSocket('some-id-2')
+  ];
 
-  players.forEach(player => {
-    room.addPlayer(player);
+  sockets.forEach(socket => room.join(socket));
 
-    jest.spyOn(player, 'emit');
-  });
+  room.emitToAllExcept('test', {}, 'some-id-2');
 
-  room.emitToAllExcept('test', {}, 'id-2');
-
-  expect(room.players[0].emit).toBeCalled();
-  expect(room.players[1].emit).toBeCalledTimes(0);
+  expect(room.sockets[0].emitWithAcknowledgement).toBeCalled();
+  expect(room.sockets[1].emitWithAcknowledgement).toBeCalledTimes(0);
 });

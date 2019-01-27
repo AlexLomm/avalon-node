@@ -3,7 +3,7 @@ Description=avalon-nodejs
 After=syslog.target
 
 [Service]
-Environmemt=AVALON_NODEJS_PORT=3000
+Environment=PORT=3003
 Type=simple
 User=root
 ExecStart=/usr/bin/nodejs %/path/to/this/project%/index.js
